@@ -137,7 +137,9 @@ jobs:
         run: npm test
 
       - name: Set package version
-        run: npm version "${{ needs.version.outputs.tag }}" --no-git-tag-version
+        run: |
+          TAG="${{ needs.version.outputs.tag }}"
+          npm version "${TAG#v}" --no-git-tag-version
 
       - name: Publish
         run: npm publish --access public
