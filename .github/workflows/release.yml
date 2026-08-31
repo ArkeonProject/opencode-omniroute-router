@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: Version Release
+    runs-on: ubuntu-latest
+    outputs:
+      type: ${{ steps.bump.outputs.type }}
+      tag: ${{ steps.version.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get last tag
+        id: last-tag
+        run: |
+          LAST=$(git tag -l 'v[0-9]*' --sort=-v:refname 2>/dev/null | head -1)
+          [ -z "$LAST" ] && LAST="v0.0.0"
+          echo "ref=$LAST" >> $GITHUB_OUTPUT
+          echo "version=${LAST#v}" >> $GITHUB_OUTPUT
+
+      - name: Analyze commits — determine bump type
+        id: bump
+        run: |
+          LAST_REF="${{ steps.last-tag.outputs.ref }}"
+
+          if [ "$LAST_REF" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s%n%b")
+          else
+            COMMITS=$(git log "${LAST_REF}..HEAD" --pretty=format:"%s%n%b")
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "type=none" >> $GITHUB_OUTPUT
+            echo "No commits since last tag — skipping release"
+            exit 0
+          fi
+
+          if echo "$COMMITS" | grep -qE "^.+!:|^BREAKING CHANGE"; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif echo "$COMMITS" | grep -qE "^feat(\([^)]+\))?:"; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          elif echo "$COMMITS" | grep -qE "^(fix|perf)(\([^)]+\))?:"; then
+            echo "type=patch" >> $GITHUB_OUTPUT
+          else
+            echo "type=none" >> $GITHUB_OUTPUT
+            echo "Only chore/docs/style/refactor commits — no release"
+          fi
+
+      - name: Calculate new version
+        if: steps.bump.outputs.type != 'none'
+        id: version
+        run: |
+          IFS='.' read -ra V <<< "${{ steps.last-tag.outputs.version }}"
+          MAJOR="${V[0]:-0}"
+          MINOR="${V[1]:-0}"
+          PATCH="${V[2]:-0}"
+
+          case "${{ steps.bump.outputs.type }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+
+          echo "new=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
+          echo "tag=v${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        if: steps.bump.outputs.type != 'none'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.version.outputs.tag }}',
+              name: `Release ${{ steps.version.outputs.tag }}`,
+              generate_release_notes: true,
+              draft: false,
+              prerelease: false
+            });
+
+      - name: Job Summary
+        if: always()
+        run: |
+          if [ "${{ steps.bump.outputs.type }}" = "none" ] || [ -z "${{ steps.bump.outputs.type }}" ]; then
+            echo "## ⏭️ No release" >> $GITHUB_STEP_SUMMARY
+            echo "Only chore/docs/style/refactor commits since last tag — no release." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🎉 Released ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+            echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Bump** | \`${{ steps.bump.outputs.type }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  publish:
+    name: Publish to npm
+    needs: version
+    if: needs.version.outputs.type != 'none' && needs.version.outputs.type != ''
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Set package version
+        run: npm version "${{ needs.version.outputs.tag }}" --no-git-tag-version
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

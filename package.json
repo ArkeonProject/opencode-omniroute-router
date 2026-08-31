@@ -1,0 +1,46 @@
+{
+  "name": "opencode-omniroute-router",
+  "version": "0.1.0",
+  "description": "Deterministic task routing plugin for OpenCode on top of a self-hosted OmniRoute gateway: classifies requests into five tiers, delegates to exactly one worker per turn, and records execution history.",
+  "type": "module",
+  "main": "src/plugin.mjs",
+  "exports": {
+    ".": "./src/plugin.mjs",
+    "./classifier": "./src/classifier.mjs",
+    "./stats": "./src/stats.mjs"
+  },
+  "bin": {
+    "opencode-omniroute-router": "src/cli.mjs"
+  },
+  "files": [
+    "src/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "omniroute",
+    "ai-router",
+    "multi-model",
+    "task-routing",
+    "coding-agent",
+    "llm"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArkeonProject/opencode-omniroute-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ArkeonProject/opencode-omniroute-router/issues"
+  },
+  "homepage": "https://github.com/ArkeonProject/opencode-omniroute-router#readme"
+}
