@@ -84,6 +84,10 @@ opencode
 
 > **Which models should I use?** After `setup-opencode`, list your catalog with `omniroute models` (or `GET /v1/models`). The `auto/*` channels always exist; named **combos** created in the OmniRoute dashboard (e.g. a free-first chain for the low tiers, a premium chain for expert) are ideal tier targets — pass them via the `init` flags above.
 
+Example: three dashboard combos designed exactly for this plugin's tiers — a fill-first free chain for fast work, a quality-first free chain for standard tasks, and a Codex-first chain for the expert tier, with live success rates and fallback stats per combo:
+
+![OmniRoute combos configured as tier targets for the plugin](docs/assets/omniroute-combos.png)
+
 ## Configuration
 
 Plugin options are passed in `opencode.json` and all have defaults:
