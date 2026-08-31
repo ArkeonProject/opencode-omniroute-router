@@ -1,6 +1,6 @@
 # opencode-omniroute-router
 
-[![CI](https://github.com/daviilpzDev/opencode-omniroute-router/actions/workflows/ci.yml/badge.svg)](https://github.com/daviilpzDev/opencode-omniroute-router/actions/workflows/ci.yml)
+[![CI](https://github.com/ArkeonProject/opencode-omniroute-router/actions/workflows/ci.yml/badge.svg)](https://github.com/ArkeonProject/opencode-omniroute-router/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/opencode-omniroute-router)](https://www.npmjs.com/package/opencode-omniroute-router)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

@@ -37,10 +37,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/daviilpzDev/opencode-omniroute-router.git"
+    "url": "git+https://github.com/ArkeonProject/opencode-omniroute-router.git"
   },
   "bugs": {
-    "url": "https://github.com/daviilpzDev/opencode-omniroute-router/issues"
+    "url": "https://github.com/ArkeonProject/opencode-omniroute-router/issues"
   },
-  "homepage": "https://github.com/daviilpzDev/opencode-omniroute-router#readme"
+  "homepage": "https://github.com/ArkeonProject/opencode-omniroute-router#readme"
 }
