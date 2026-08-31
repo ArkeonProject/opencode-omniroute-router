@@ -39,22 +39,50 @@ Guarantees enforced by the plugin, per user turn: at most one exploration (never
 
 Prerequisites: [OpenCode](https://opencode.ai) and a running [OmniRoute](https://github.com/diegosouzapw/OmniRoute) gateway (local or remote, e.g. Docker).
 
-```bash
-# 1. Wire OpenCode to your OmniRoute (official command):
-omniroute setup-opencode            # local gateway
-# or: omniroute setup-opencode --remote http://<host>:20128 --api-key "$OMNIROUTE_API_KEY"
+### Step 1 — Install and start OmniRoute
 
-# 2. Scaffold the agents + plugin config into your project:
+OmniRoute is the gateway that holds your providers (OAuth subscriptions, API keys, free pools) and serves one OpenAI-compatible endpoint.
+
+```bash
+npm install -g omniroute
+omniroute serve            # dashboard + API at http://localhost:20128
+```
+
+Then connect at least one provider from the dashboard (`http://localhost:20128` → **Providers**), e.g. OAuth for Codex/Gemini or any API-key provider. The built-in free channels (`auto/*`, `opencode/*`) work out of the box with zero credentials.
+
+> For a permanent deployment (home server, VPS), OmniRoute ships an official Docker image (`diegosouzapw/omniroute`) and a daemon mode (`omniroute serve --daemon`). Bind it to loopback or a private network and enable `REQUIRE_API_KEY=true` before exposing it anywhere.
+
+### Step 2 — Create an API key and wire OpenCode to it
+
+```bash
+# Open the dashboard, sign in and create a client API key (Keys section),
+# or set REQUIRE_API_KEY=false for a local-only, keyless setup.
+export OMNIROUTE_API_KEY='your-client-key'
+
+# Generate the omniroute provider in your OpenCode config (official command):
+omniroute setup-opencode                       # local gateway
+omniroute setup-opencode --remote http://<host>:20128 --api-key "$OMNIROUTE_API_KEY"
+
+# Verify the gateway is reachable:
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:20128/v1/models \
+  -H "Authorization: Bearer $OMNIROUTE_API_KEY"    # expected: 200
+```
+
+### Step 3 — Install this plugin
+
+```bash
+# Scaffold the agents + plugin config into your project:
 npx opencode-omniroute-router init
 # or globally (all projects):
 npx opencode-omniroute-router init --global
-
-# 3. Use OpenCode normally:
+# then use OpenCode normally:
 opencode
 > Fix the bug where the login form rejects valid emails
 ```
 
 `init` flags: `--global`, `--orchestrator <model>`, `--free <model>`, `--fast <model>`, `--standard <model>`, `--strong <model>`, `--expert <model>` — model IDs use the `provider/model` format from your config (e.g. `omniroute/auto/coding`, or a named combo like `omniroute/combo/free-fast`).
+
+> **Which models should I use?** After `setup-opencode`, list your catalog with `omniroute models` (or `GET /v1/models`). The `auto/*` channels always exist; named **combos** created in the OmniRoute dashboard (e.g. a free-first chain for the low tiers, a premium chain for expert) are ideal tier targets — pass them via the `init` flags above.
 
 ## Configuration
 
@@ -120,4 +148,4 @@ Tú describes la tarea; un orquestador ligero la clasifica con reglas estáticas
 
 Los workers pueden leer el repositorio y ejecutar una allowlist estricta de comandos de verificación (tests, build, lint, git de lectura); nunca editan archivos. Ante síntomas de causa desconocida, el orquestador lanza antes una exploración read-only.
 
-Instalación: `omniroute setup-opencode` + `npx opencode-omniroute-router init` (+ `--global` para todos tus proyectos). Historial en `~/.smart-opencode/history.jsonl`, estadísticas con `npx opencode-omniroute-router stats`.
+Instalación: `npm i -g omniroute && omniroute serve` (conecta proveedores en el dashboard), luego `omniroute setup-opencode` para enlazar OpenCode, y `npx opencode-omniroute-router init` (+ `--global` para todos tus proyectos). Historial en `~/.smart-opencode/history.jsonl`, estadísticas con `npx opencode-omniroute-router stats`.
